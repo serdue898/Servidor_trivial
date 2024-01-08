@@ -1,0 +1,64 @@
+{
+  "preguntas": [
+    {
+      "correcta": ["8"],
+      "dificultad": "1",
+      "pregunta": "¿Cuál es el resultado de sumar 5 y 3 en Python?",
+      "respuestas": ["8", "10", "5", "12"]
+    },
+    {
+      "correcta": ["Lenguaje de consulta de bases de datos"],
+      "dificultad": "1",
+      "pregunta": "¿Qué es SQL?",
+      "respuestas": ["Lenguaje de programación", "Sistema operativo", "Lenguaje de consulta de bases de datos", "Herramienta de diseño gráfico"]
+    },
+    {
+      "correcta": ["Java"],
+      "dificultad": "2",
+      "pregunta": "¿En qué lenguaje se programa mayoritariamente en Android?",
+      "respuestas": ["Java", "C++", "Python", "Swift"]
+    },
+    {
+      "correcta": ["Una estructura de control de flujo"],
+      "dificultad": "3",
+      "pregunta": "¿Qué es un bucle 'for'?",
+      "respuestas": ["Una función", "Un tipo de variable", "Una estructura de control de flujo", "Una clase en programación orientada a objetos"]
+    },
+    {
+      "correcta": ["Evitar duplicados"],
+      "dificultad": "4",
+      "pregunta": "¿Cuál es el propósito principal de una clave primaria en una base de datos?",
+      "respuestas": ["Ordenar los datos", "Evitar duplicados", "Realizar operaciones matemáticas", "Generar informes"]
+    },
+    {
+      "correcta": ["Service"],
+      "dificultad": "5",
+      "pregunta": "¿Qué componente de Android se utiliza para realizar operaciones en segundo plano?",
+      "respuestas": ["Activity", "Service", "BroadcastReceiver", "ContentProvider"]
+    },
+    {
+      "correcta": ["Una lista ordenada de elementos"],
+      "dificultad": "1",
+      "pregunta": "¿Qué es un 'array' en programación?",
+      "respuestas": ["Una cadena de texto", "Una lista ordenada de elementos", "Un número entero", "Una variable booleana"]
+    },
+    {
+      "correcta": ["Un campo que identifica un registro de manera única"],
+      "dificultad": "2",
+      "pregunta": "¿Qué es un índice en una base de datos?",
+      "respuestas": ["Un campo que identifica un registro de manera única", "Una lista de registros", "Una consulta SQL", "Un informe generado automáticamente"]
+    },
+    {
+      "correcta": ["Un mensaje que indica una operación a realizar"],
+      "dificultad": "3",
+      "pregunta": "¿Qué es un Intent en Android?",
+      "respuestas": ["Un componente gráfico", "Una clase Java", "Un mensaje que indica una operación a realizar", "Un archivo de configuración"]
+    },
+    {
+      "correcta": ["Don't Repeat Yourself"],
+      "dificultad": "4",
+      "pregunta": "¿Qué significa 'DRY' en programación?",
+      "respuestas": ["Don't Repeat Yourself", "Data Retrieval Yearly", "Digital Rendering Yield", "Developer's Righteous Yearning"]
+    }
+  ]
+}
