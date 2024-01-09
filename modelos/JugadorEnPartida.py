@@ -1,0 +1,10 @@
+class JugadorEnPartida(db.Model):
+    id_jugador = db.Column(db.Integer, db.ForeignKey('jugador.id_jugador'), primary_key=True)
+    id_partida = db.Column(db.Integer, db.ForeignKey('partida.id_partida'), primary_key=True)
+    casilla_actual = db.Column(db.String(50))
+    jugador_actual = db.Column(db.Integer)
+    avatar_partida = db.Column(db.String(50))
+    juego1 = db.Column(db.Integer)
+    juego2 = db.Column(db.Integer)
+    juego3 = db.Column(db.Integer)
+    juego4 = db.Column(db.Integer)
