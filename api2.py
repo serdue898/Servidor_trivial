@@ -182,7 +182,25 @@ def handle_empezar_partida(data):
         jugadoresEnPartida.append(jugador)
     socketio.emit('empezarPartida', [j.to_dict() for j in jugadoresEnPartida])
 
+@socketio.on('moverJugador')
+def handle_mover_jugador(data):
+    jugador_json = data
+    try:
+        jugador_dict = json.loads(jugador_json)
+    except json.JSONDecodeError as e:
+        print(f"Error al decodificar JSON: {e}")
+        return
+    jugadorEnPartida = jugadorEnPartidaOnline(id_jugador=jugador_dict.get("id_jugador"))
+    jugadorEnPartidaBase = cambioJugador(jugadorEnPartida)
+    
+    
+def cambioJugador(jugador):
+    return JugadorEnPartida(id_jugador=jugador.id_jugador, id_partida=jugador.id_partida, casillaActual=jugador.casillaActual, jugadorActual=jugador.jugadorActual, avatar=jugador.avatar, juego1=jugador.juegos[0], juego2=jugador.juegos[1], juego3=jugador.juegos[2], juego4=jugador.juegos[3])
 
+def handle_notificarJugadores(data):
+    # Emitir la lista actualizada a todos los clientes
+    socketio.emit('listaJugadores', [j.to_dict() for j in jugadores_conectados])
+    print(jugadores_conectados)
 
 # Resto del código ...  
 if __name__ == '__main__':
