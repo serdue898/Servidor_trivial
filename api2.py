@@ -47,20 +47,16 @@ class JugadorEnPartida(db.Model):
         return jugador_json
 
 class jugadorEnPartidaOnline():
-    id_jugador = 0
-    id_partida = 0
-    casillaActual = ""
-    jugadorActual = 0
-    avatar = 0
-    juegos =[]
-
+    def __init__(self, id_jugador, id_partida, casillaActual, jugadorActual, avatar, juegos):
+        self.id_jugador = id_jugador
+        self.partida = id_partida
+        self.casillaActual = casillaActual
+        self.jugadorActual = jugadorActual
+        self.avatar = avatar
+        self.juegos = juegos
     def to_dict(self):
-        # Excluir el campo '_sa_instance_state' de la representación del diccionario
         jugador_dict = {key: value for key, value in self.__dict__.items() if key != '_sa_instance_state'}
-
-        # Convertir el diccionario a una cadena JSON
         jugador_json = json.dumps(jugador_dict, default=str)
-
         return jugador_json
 
 # Ruta original para obtener preguntas
@@ -149,7 +145,6 @@ def handle_delete_jugador(data):
         print(f"No se encontró el jugador con id {jugador_id}")
 
 @socketio.on('actualizarJugadores')
-
 def handle_notificarJugadores():
     # Emitir la lista actualizada a todos los clientes
     socketio.emit('listaJugadores', [j.to_dict() for j in jugadores_conectados])
@@ -161,16 +156,17 @@ def handle_notificarJugadores():
 def handle_empezar_partida(data):
     id_partida = data
     jugadoresEnPartida=[]
-    juegosNuevos = [0,0,0,0]
+    juegosNuevos = [False,False,False,False]
     for jugador in jugadores_conectados:
         if jugador.partida == id_partida:
             jugadoresEnPartida.append(jugador)
     for jugador in jugadoresEnPartida:
-        primero =False
+        primero =0
         if jugadoresEnPartida.index(jugador) == 0:
-            primero = True
+            primero = 1
         jugador = JugadorEnPartida(id_jugador=jugador.id_jugador, id_partida=id_partida, casillaActual="4_4", jugadorActual=primero, avatar=jugador.avatar, juego1=0, juego2=0, juego3=0, juego4=0)
         db.session.add(jugador)
+    db.session.commit()
     jugadores = db.session.query(JugadorEnPartida).filter_by(id_partida=id_partida).all()
     jugadoresEnPartida = []
     for jugador in jugadores:
@@ -178,9 +174,14 @@ def handle_empezar_partida(data):
         primero =False
         if jugadores.index(jugador) == 0:
             primero = True
-        jugador = jugadorEnPartidaOnline(id_jugador=jugador.id_jugador, id_partida=id_partida, casillaActual="4_4", jugadorActual=primero, avatar=jugador.avatar, juegos=juegosNuevos)
+        jugador = cambiarBaseAJugadorEnPartida(jugador)
         jugadoresEnPartida.append(jugador)
     socketio.emit('empezarPartida', [j.to_dict() for j in jugadoresEnPartida])
+
+def cambiarBaseAJugadorEnPartida(jugador):
+    juegos = [jugador.juego1==1, jugador.juego2==1, jugador.juego3==1, jugador.juego4==1]
+
+    return jugadorEnPartidaOnline(id_jugador=jugador.id_jugador, id_partida=jugador.id_partida, casillaActual=jugador.casillaActual, jugadorActual=jugador.jugadorActual==1, avatar=jugador.avatar, juegos=juegos)
 
 @socketio.on('moverJugador')
 def handle_mover_jugador(data):
@@ -197,10 +198,6 @@ def handle_mover_jugador(data):
 def cambioJugador(jugador):
     return JugadorEnPartida(id_jugador=jugador.id_jugador, id_partida=jugador.id_partida, casillaActual=jugador.casillaActual, jugadorActual=jugador.jugadorActual, avatar=jugador.avatar, juego1=jugador.juegos[0], juego2=jugador.juegos[1], juego3=jugador.juegos[2], juego4=jugador.juegos[3])
 
-def handle_notificarJugadores(data):
-    # Emitir la lista actualizada a todos los clientes
-    socketio.emit('listaJugadores', [j.to_dict() for j in jugadores_conectados])
-    print(jugadores_conectados)
 
 # Resto del código ...  
 if __name__ == '__main__':
