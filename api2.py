@@ -45,6 +45,24 @@ class JugadorEnPartida(db.Model):
         jugador_json = json.dumps(jugador_dict, default=str)
 
         return jugador_json
+
+class jugadorEnPartidaOnline():
+    id_jugador = 0
+    id_partida = 0
+    casillaActual = ""
+    jugadorActual = 0
+    avatar = 0
+    juegos =[]
+
+    def to_dict(self):
+        # Excluir el campo '_sa_instance_state' de la representación del diccionario
+        jugador_dict = {key: value for key, value in self.__dict__.items() if key != '_sa_instance_state'}
+
+        # Convertir el diccionario a una cadena JSON
+        jugador_json = json.dumps(jugador_dict, default=str)
+
+        return jugador_json
+
 # Ruta original para obtener preguntas
 @app.route('/preguntas', methods=['GET'])
 def obtener_asignaturas():
@@ -143,7 +161,7 @@ def handle_notificarJugadores():
 def handle_empezar_partida(data):
     id_partida = data
     jugadoresEnPartida=[]
-    juegos = [0,0,0,0]
+    juegosNuevos = [0,0,0,0]
     for jugador in jugadores_conectados:
         if jugador.partida == id_partida:
             jugadoresEnPartida.append(jugador)
@@ -154,7 +172,15 @@ def handle_empezar_partida(data):
         jugador = JugadorEnPartida(id_jugador=jugador.id_jugador, id_partida=id_partida, casillaActual="4_4", jugadorActual=primero, avatar=jugador.avatar, juego1=0, juego2=0, juego3=0, juego4=0)
         db.session.add(jugador)
     jugadores = db.session.query(JugadorEnPartida).filter_by(id_partida=id_partida).all()
-    socketio.emit('empezarPartida', [j.to_dict() for j in jugadores])
+    jugadoresEnPartida = []
+    for jugador in jugadores:
+        
+        primero =False
+        if jugadores.index(jugador) == 0:
+            primero = True
+        jugador = jugadorEnPartidaOnline(id_jugador=jugador.id_jugador, id_partida=id_partida, casillaActual="4_4", jugadorActual=primero, avatar=jugador.avatar, juegos=juegosNuevos)
+        jugadoresEnPartida.append(jugador)
+    socketio.emit('empezarPartida', [j.to_dict() for j in jugadoresEnPartida])
 
 
 
