@@ -177,6 +177,7 @@ def handle_empezar_partida(data):
         jugador = cambiarBaseAJugadorEnPartida(jugador)
         jugadoresEnPartida.append(jugador)
     socketio.emit('empezarPartida', [j.to_dict() for j in jugadoresEnPartida])
+    jugadores_conectados.clear()
 
 def cambiarBaseAJugadorEnPartida(jugador):
     juegos = [jugador.juego1==1, jugador.juego2==1, jugador.juego3==1, jugador.juego4==1]
@@ -191,8 +192,7 @@ def handle_mover_jugador(data):
     except json.JSONDecodeError as e:
         print(f"Error al decodificar JSON: {e}")
         return
-    jugadorEnPartida = jugadorEnPartidaOnline(id_jugador=jugador_dict.get("id_jugador"))
-    jugadorEnPartidaBase = cambioJugador(jugadorEnPartida)
+    socketio.emit('moverJugador', jugador_dict)
     
     
 def cambioJugador(jugador):
