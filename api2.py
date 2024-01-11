@@ -144,6 +144,34 @@ def handle_delete_jugador(data):
     else:
         print(f"No se encontró el jugador con id {jugador_id}")
 
+
+@socketio.on('actualizarJugador')
+def handle_actualizar_jugador(data):
+    # Deserializar el objeto JSON recibido del cliente
+    jugador_json = data
+    try:
+        jugador_dict = json.loads(jugador_json)
+    except json.JSONDecodeError as e:
+        print(f"Error al decodificar JSON: {e}")
+        return
+
+    # Obtener el id del jugador a desconectar
+    jugador_id = jugador_dict.get('nombre')
+    jugador_avatar = jugador_dict.get('avatar')
+    # Buscar el jugador en la lista por su id
+    jugador_a_actualizar = next((jugador for jugador in jugadores_conectados if jugador.nombre == jugador_id), None)
+    jugador_a_actualizar.avatar = jugador_avatar
+
+    # Verificar si se encontró el jugador
+    if jugador_a_actualizar:
+        # Actualizar el jugador de la lista
+        jugador_a_actualizar.avatar = jugador_dict.get('avatar')
+        jugador_a_actualizar.partida = jugador_dict.get('partida')
+        # Notificar a los demás jugadores sobre la actualización
+        handle_notificarJugadores()
+    else:
+        print(f"No se encontró el jugador con id {jugador_id}")
+
 @socketio.on('actualizarJugadores')
 def handle_notificarJugadores():
     # Emitir la lista actualizada a todos los clientes
