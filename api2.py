@@ -192,9 +192,25 @@ def handle_mover_jugador(data):
     except json.JSONDecodeError as e:
         print(f"Error al decodificar JSON: {e}")
         return
-    socketio.emit('moverJugador', jugador_dict)
+    socketio.emit('moverJugadorOnline', jugador_dict)
+
+@socketio.on('crearPartida')
+def handle_crear_partida(data):
+    if existePartida(data):
+        socketio.emit('partidaCreada',"null")
+        return
+    db.session.add(Partida(nombre=data, finalizada=False))
+    db.session.commit()
+    partida = Partida.query.filter_by(nombre=data).first()
+    socketio.emit('partidaCreada', partida.id_partida)
     
-    
+def existePartida(name):
+    partida = Partida.query.filter_by(nombre=name).first()
+    if partida:
+        return  True
+    else:
+        return False
+
 def cambioJugador(jugador):
     return JugadorEnPartida(id_jugador=jugador.id_jugador, id_partida=jugador.id_partida, casillaActual=jugador.casillaActual, jugadorActual=jugador.jugadorActual, avatar=jugador.avatar, juego1=jugador.juegos[0], juego2=jugador.juegos[1], juego3=jugador.juegos[2], juego4=jugador.juegos[3])
 
