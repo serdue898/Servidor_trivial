@@ -12,6 +12,7 @@ class Jugador(db.Model):
     nombre = db.Column(db.String(50))
     avatar = 0
     partida=0
+    host = False
     def to_dict(self):
         # Excluir el campo '_sa_instance_state' de la representación del diccionario
         jugador_dict = {key: value for key, value in self.__dict__.items() if key != '_sa_instance_state'}
@@ -135,11 +136,15 @@ def handle_delete_jugador(data):
     # Buscar el jugador en la lista por su id
     jugador_a_eliminar = next((jugador for jugador in jugadores_conectados if jugador.nombre == jugador_id), None)
 
+
     # Verificar si se encontró el jugador
     if jugador_a_eliminar:
+        
         # Eliminar el jugador de la lista
         jugadores_conectados.remove(jugador_a_eliminar)
         # Notificar a los demás jugadores sobre la actualización
+        if jugador_a_eliminar.host:
+            jugadores_conectados[0].host = True
         handle_notificarJugadores()
     else:
         print(f"No se encontró el jugador con id {jugador_id}")
