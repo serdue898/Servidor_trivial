@@ -10,6 +10,7 @@ db = SQLAlchemy(app)
 class Jugador(db.Model):
     id_jugador = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(50))
+    contraseña = db.Column(db.String(50))
     avatar = 0
     partida=0
     host = False
@@ -59,7 +60,6 @@ class jugadorEnPartidaOnline():
         jugador_dict = {key: value for key, value in self.__dict__.items() if key != '_sa_instance_state'}
         jugador_json = json.dumps(jugador_dict, default=str)
         return jugador_json
-
 # Ruta original para obtener preguntas
 @app.route('/preguntas', methods=['GET'])
 def obtener_asignaturas():
@@ -139,9 +139,11 @@ def handle_delete_jugador(data):
 
     # Verificar si se encontró el jugador
     if jugador_a_eliminar:
-        
-        # Eliminar el jugador de la lista
         jugadores_conectados.remove(jugador_a_eliminar)
+        if (jugadores_conectados.count == 0):
+            db.session.delete(Partida.query.filter_by(id_partida=jugador_a_eliminar.partida).first())
+            db.session.commit()
+            return
         # Notificar a los demás jugadores sobre la actualización
         if jugador_a_eliminar.host:
             jugadores_conectados[0].host = True
@@ -180,9 +182,7 @@ def handle_actualizar_jugador(data):
 def handle_notificarJugadores():
     # Emitir la lista actualizada a todos los clientes
     socketio.emit('listaJugadores', [j.to_dict() for j in jugadores_conectados])
-    print(jugadores_conectados)
-
-
+    print(j.to_dict() for j in jugadores_conectados)
 
 @socketio.on('empezarPartida')
 def handle_empezar_partida(data):
@@ -246,6 +246,33 @@ def existePartida(name):
 def cambioJugador(jugador):
     return JugadorEnPartida(id_jugador=jugador.id_jugador, id_partida=jugador.id_partida, casillaActual=jugador.casillaActual, jugadorActual=jugador.jugadorActual, avatar=jugador.avatar, juego1=jugador.juegos[0], juego2=jugador.juegos[1], juego3=jugador.juegos[2], juego4=jugador.juegos[3])
 
+@socketio.on('registrarJugador')
+def handle_registrar_jugador(data):
+    jugador_json = data
+    try:
+        jugador_dict = json.loads(jugador_json)
+    except json.JSONDecodeError as e:
+        print(f"Error al decodificar JSON: {e}")
+        return
+    jugador = Jugador(nombre=jugador_dict.get('nombre'), contraseña=jugador_dict.get('contraseña'))
+    db.session.add(jugador)
+    db.session.commit()
+@socketio.on('login')
+def handle_login(data):
+    jugador_json = data
+    try:
+        jugador_dict = json.loads(jugador_json)
+    except json.JSONDecodeError as e:
+        print(f"Error al decodificar JSON: {e}")
+        return
+    jugador = Jugador.query.filter_by(nombre=jugador_dict.get('nombre')).first()
+    if jugador:
+        if jugador.contraseña == jugador_dict.get('contraseña'):
+            socketio.emit('login', jugador.to_dict())
+        else:
+            socketio.emit('login', "error")
+    else:
+        socketio.emit('login', "null")
 
 # Resto del código ...  
 if __name__ == '__main__':
