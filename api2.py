@@ -160,7 +160,6 @@ def handle_actualizar_jugador(data):
     jugador_avatar = jugador_dict.get('avatar')
     # Buscar el jugador en la lista por su id
     jugador_a_actualizar = next((jugador for jugador in jugadores_conectados if jugador.nombre == jugador_id), None)
-    jugador_a_actualizar.avatar = jugador_avatar
 
     # Verificar si se encontró el jugador
     if jugador_a_actualizar:
