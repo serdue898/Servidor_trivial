@@ -110,6 +110,11 @@ def handle_add_jugador(data):
     jugador_nuevo = Jugador.query.filter_by(nombre=jugador_dict.get('nombre')).first()
     jugador_nuevo.avatar = jugador_dict.get('avatar')
     jugador_nuevo.partida = jugador_dict.get('partida')
+    #si el host es nulo devuelve false
+    if jugador_dict.get('host') == None:
+        jugador_nuevo.host = False
+    else:
+        jugador_nuevo.host = jugador_dict.get('host')
     jugadores_conectados.append(jugador_nuevo)
     handle_notificarJugadores()
 
@@ -136,21 +141,23 @@ def handle_delete_jugador(data):
     # Buscar el jugador en la lista por su id
     jugador_a_eliminar = next((jugador for jugador in jugadores_conectados if jugador.nombre == jugador_id), None)
 
-
     # Verificar si se encontró el jugador
     if jugador_a_eliminar:
         jugadores_conectados.remove(jugador_a_eliminar)
-        if (jugadores_conectados.count == 0):
+        
+        # Verificar si no hay jugadores conectados
+        if not jugadores_conectados:
             db.session.delete(Partida.query.filter_by(id_partida=jugador_a_eliminar.partida).first())
             db.session.commit()
             return
+
         # Notificar a los demás jugadores sobre la actualización
         if jugador_a_eliminar.host:
             jugadores_conectados[0].host = True
+        
         handle_notificarJugadores()
     else:
         print(f"No se encontró el jugador con id {jugador_id}")
-
 
 @socketio.on('actualizarJugador')
 def handle_actualizar_jugador(data):
@@ -254,9 +261,17 @@ def handle_registrar_jugador(data):
     except json.JSONDecodeError as e:
         print(f"Error al decodificar JSON: {e}")
         return
-    jugador = Jugador(nombre=jugador_dict.get('nombre'), contraseña=jugador_dict.get('contraseña'))
-    db.session.add(jugador)
-    db.session.commit()
+    existe =existeJugador(jugador_dict.get('nombre'))
+    if existe :
+        jugador = Jugador(nombre=jugador_dict.get('nombre'), contraseña=jugador_dict.get('contraseña'))
+        db.session.add(jugador)
+        db.session.commit()
+        jugador = Jugador.query.filter_by(nombre=jugador_dict.get('nombre')).first()
+        jugador.avatar = jugador_dict.get('avatar')
+        socketio.emit('registrarJugador', jugador.to_dict())
+        return
+    socketio.emit('registrarJugador', "null")
+    
 @socketio.on('login')
 def handle_login(data):
     jugador_json = data
@@ -267,7 +282,9 @@ def handle_login(data):
         return
     jugador = Jugador.query.filter_by(nombre=jugador_dict.get('nombre')).first()
     if jugador:
+
         if jugador.contraseña == jugador_dict.get('contraseña'):
+            jugador.avatar = jugador_dict.get('avatar')
             socketio.emit('login', jugador.to_dict())
         else:
             socketio.emit('login', "error")
