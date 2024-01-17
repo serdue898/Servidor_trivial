@@ -1,7 +1,8 @@
 from flask import Flask, jsonify, request, render_template
-from flask_socketio import SocketIO
+from flask_socketio import SocketIO , emit, join_room, leave_room
 from flask_sqlalchemy import SQLAlchemy
 import json 
+
 
 app = Flask(__name__)
 socketio = SocketIO(app)
@@ -127,6 +128,8 @@ def existeJugador(name):
 
 @socketio.on('desconectar')
 def handle_delete_jugador(data):
+    print("Desconectando jugador")
+
     # Deserializar el objeto JSON recibido del cliente
     jugador_json = data
     try:
@@ -144,9 +147,9 @@ def handle_delete_jugador(data):
     # Verificar si se encontró el jugador
     if jugador_a_eliminar:
         jugadores_conectados.remove(jugador_a_eliminar)
-        
-        # Verificar si no hay jugadores conectados
-        if not jugadores_conectados:
+        jugadores_partida = [jugador for jugador in jugadores_conectados if jugador.partida == jugador_a_eliminar.partida]
+        # Verifjugadores
+        if not jugadores_partida:
             db.session.delete(Partida.query.filter_by(id_partida=jugador_a_eliminar.partida).first())
             db.session.commit()
             return
@@ -154,7 +157,7 @@ def handle_delete_jugador(data):
         # Notificar a los demás jugadores sobre la actualización
         if jugador_a_eliminar.host:
             jugadores_conectados[0].host = True
-        
+        print(f"eliminado el jugador con id {jugador_id}")
         handle_notificarJugadores()
     else:
         print(f"No se encontró el jugador con id {jugador_id}")
@@ -280,12 +283,18 @@ def handle_login(data):
     except json.JSONDecodeError as e:
         print(f"Error al decodificar JSON: {e}")
         return
-    jugador = Jugador.query.filter_by(nombre=jugador_dict.get('nombre')).first()
-    if jugador:
 
+    jugador = Jugador.query.filter_by(nombre=jugador_dict.get('nombre')).first()
+
+    if jugador:
         if jugador.contraseña == jugador_dict.get('contraseña'):
             jugador.avatar = jugador_dict.get('avatar')
-            socketio.emit('login', jugador.to_dict())
+            
+            # Obtener el ID de sesión del cliente que envió la solicitud
+            client_sid = request.sid
+            
+            # Emitir el mensaje solo al cliente que envió la solicitud
+            socketio.emit('login', jugador.to_dict(), room=client_sid)
         else:
             socketio.emit('login', "error")
     else:
