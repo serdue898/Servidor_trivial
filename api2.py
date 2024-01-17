@@ -94,6 +94,7 @@ def handle_obtener_partidas():
     # Devuelve los datos en lugar de un objeto Response
     return partidas_json
 jugadores_conectados = []
+jugadores_loggeados = []
 @socketio.on('addJugador')
 def handle_add_jugador(data):
     # Deserializar el objeto JSON recibido del cliente
@@ -147,6 +148,10 @@ def handle_delete_jugador(data):
     # Verificar si se encontró el jugador
     if jugador_a_eliminar:
         jugadores_conectados.remove(jugador_a_eliminar)
+        try:
+            jugadores_loggeados.remove(jugador_a_eliminar)
+        except:
+            print("no estaba loggeado")
         jugadores_partida = [jugador for jugador in jugadores_conectados if jugador.partida == jugador_a_eliminar.partida]
         # Verifjugadores
         if not jugadores_partida:
@@ -283,22 +288,27 @@ def handle_login(data):
     except json.JSONDecodeError as e:
         print(f"Error al decodificar JSON: {e}")
         return
-
+     # Obtener el ID de sesión del cliente que envió la solicitud
+    client_sid = request.sid
+    jugadores_nombre = [jugador.nombre for jugador in jugadores_loggeados]
+    if jugador_dict.get('nombre') in jugadores_nombre:
+        socketio.emit('login_respuesta', "loggeado", room=client_sid)
+        return
     jugador = Jugador.query.filter_by(nombre=jugador_dict.get('nombre')).first()
 
     if jugador:
         if jugador.contraseña == jugador_dict.get('contraseña'):
             jugador.avatar = jugador_dict.get('avatar')
+            jugadores_loggeados.append(jugador)
             
-            # Obtener el ID de sesión del cliente que envió la solicitud
-            client_sid = request.sid
+           
             
             # Emitir el mensaje solo al cliente que envió la solicitud
-            socketio.emit('login', jugador.to_dict(), room=client_sid)
+            socketio.emit('login_respuesta', jugador.to_dict(), room=client_sid)
         else:
-            socketio.emit('login', "error")
+            socketio.emit('login_respuesta', "error", room=client_sid)
     else:
-        socketio.emit('login', "null")
+        socketio.emit('login_respuesta', "null", room=client_sid)
 
 # Resto del código ...  
 if __name__ == '__main__':
