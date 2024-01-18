@@ -1,5 +1,5 @@
 from flask import Flask, jsonify, request, render_template
-from flask_socketio import SocketIO, emit, join_room
+from flask_socketio import SocketIO, emit, join_room,leave_room
 from flask_sqlalchemy import SQLAlchemy
 import json
 from flask_bcrypt import Bcrypt
@@ -142,8 +142,9 @@ def handle_delete_jugador(data):
         jugadores_conectados[jugador_a_eliminar.partida].remove(jugador_a_eliminar)
         handle_desloggear_jugador(jugador_a_eliminar.nombre)
         
+        
         jugadores_partida = jugadores_conectados[jugador_a_eliminar.partida]
-
+        leave_room(jugador_a_eliminar.partida)
         if not jugadores_partida:
             db.session.delete(Partida.query.filter_by(id_partida=jugador_a_eliminar.partida).first())
             db.session.commit()
