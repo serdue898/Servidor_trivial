@@ -246,6 +246,11 @@ def handle_crear_partida(data):
     if existePartida(data):
         socketio.emit('partidaCreada',"null")
         return
+    nueva_partida = data
+    join_room(nueva_partida)
+
+    # Agregar la nueva sala al diccionario de jugadores conectados
+    jugadores_conectados[nueva_partida] = []
     db.session.add(Partida(nombre=data, finalizada=False))
     db.session.commit()
     partida = Partida.query.filter_by(nombre=data).first()
