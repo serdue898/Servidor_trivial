@@ -210,7 +210,7 @@ def handle_empezar_partida(data):
                                    juego4=0)
         db.session.add(jugador)
     
-    db.session.Partida.query.filter_by(id_partida=id_partida).first().finalizada = True
+    db.session.query(Partida).filter_by(id_partida=id_partida).first().finalizada = True
 
     db.session.commit()
     jugadores = db.session.query(JugadorEnPartida).filter_by(id_partida=id_partida).all()
@@ -225,7 +225,7 @@ def handle_empezar_partida(data):
 
     socketio.emit('empezarPartida', [j.to_dict() for j in jugadoresEnPartida], room=id_partida)
 
-    del jugadores_conectados[id_partida]
+    jugadores_conectados[id_partida] = jugadoresEnPartida
 
 
 def cambiarBaseAJugadorEnPartida(jugador):
@@ -235,6 +235,17 @@ def cambiarBaseAJugadorEnPartida(jugador):
                                   casillaActual=jugador.casillaActual, jugadorActual=jugador.jugadorActual == 1,
                                   avatar=jugador.avatar, juegos=juegos)
 
+def jsonAJugadorEnPartidaOnline(jugador_dict):
+    jugadoractual = JugadorEnPartidaOnline(
+        id_jugador=jugador_dict.get('id_jugador'),
+        id_partida=jugador_dict.get('partida'),
+        casillaActual=jugador_dict.get('casillaActual'),
+        jugadorActual=jugador_dict.get('jugadorActual'),
+        avatar=jugador_dict.get('avatar'),
+        juegos=jugador_dict.get('juegos')
+    )
+    return jugadoractual
+   
 
 @socketio.on('moverJugador')
 def handle_mover_jugador(data):
@@ -244,7 +255,30 @@ def handle_mover_jugador(data):
     except json.JSONDecodeError as e:
         print(f"Error al decodificar JSON: {e}")
         return
-    socketio.emit('moverJugadorOnline', jugador_dict)
+    jugadoractual = jugador_dict
+
+    jugadorfalladonuevo = next((jugador for jugador in jugadores_conectados[jugador_dict.get('partida')] if jugador.id_jugador == jugador_dict.get("id_jugador")), None)
+    popsicionnueva = jugadores_conectados[jugador_dict.get('partida')].index(jugadorfalladonuevo)
+    jugadores_conectados[jugador_dict.get('partida')][popsicionnueva]= jsonAJugadorEnPartidaOnline(jugadoractual)
+
+    if (not jugador_dict.get('jugadorActual')):
+        jugadorfallado = next((jugador for jugador in jugadores_conectados[jugador_dict.get('partida')] if jugador.id_jugador == jugador_dict.get("id_jugador")), None)
+
+        #coger la posicion del jugadorfallado
+        popsicion = jugadores_conectados[jugador_dict.get('partida')].index(jugadorfallado)
+        jugadores_conectados[jugador_dict.get('partida')][popsicion].jugadorActual = False
+        popsicion += 1
+        if (popsicion == len(jugadores_conectados[jugador_dict.get('partida')])):
+            jugadoractualnuevo = jugadores_conectados[jugador_dict.get('partida')][0]
+            jugadores_conectados[jugador_dict.get('partida')][0].jugadorActual = True
+            jugadoractual = jugadoractualnuevo.to_dict()
+        else:
+            jugadores_conectados[jugador_dict.get('partida')][popsicion].jugadorActual = True
+            jugadoractualnuevo = jugadores_conectados[jugador_dict.get('partida')][popsicion]
+            jugadoractual = jugadoractualnuevo.to_dict()
+
+
+    socketio.emit('moverJugadorOnline', jugadoractual , room=jugador_dict.get('partida'))
 
 
 @socketio.on('crearPartida')
