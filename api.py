@@ -168,6 +168,7 @@ def handle_delete_jugador(data):
 
 @socketio.on('desloggear')
 def handle_desloggear_jugador(data):
+    
     try:
             jugador_a_eliminar = next((jugador for jugador in jugadores_loggeados if jugador.id_jugador == data), None)
             jugadores_loggeados.remove(jugador_a_eliminar)
