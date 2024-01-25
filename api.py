@@ -134,13 +134,16 @@ def handle_delete_jugador(data):
         print(f"Error al decodificar JSON: {e}")
         return
 
-    jugador_id = jugador_dict.get('nombre')
+    jugador_id = jugador_dict.get('id_jugador')
 
-    jugador_a_eliminar = next((jugador for jugador in jugadores_conectados[jugador_dict.get('partida')] if jugador.nombre == jugador_id), None)
+    jugador_a_eliminar = next((jugador for jugador in jugadores_conectados[jugador_dict.get('partida')] if jugador.id_jugador == jugador_id), None)
 
     if jugador_a_eliminar:
+        partida = db.session.query(Partida).filter_by(id_partida=jugador_a_eliminar.partida).first()
+        if partida.finalizada:
+            moverDeslogeado(data)
         jugadores_conectados[jugador_a_eliminar.partida].remove(jugador_a_eliminar)
-        handle_desloggear_jugador(jugador_a_eliminar.nombre)
+        handle_desloggear_jugador(jugador_a_eliminar.id_jugador)
         
         
         jugadores_partida = jugadores_conectados[jugador_a_eliminar.partida]
@@ -150,20 +153,41 @@ def handle_delete_jugador(data):
             db.session.commit()
             return
 
-        if jugador_a_eliminar.host:
-            jugadores_partida[0].host = True
-        print(f"eliminado el jugador con id {jugador_id}")
-        handle_notificarJugadores(jugador_a_eliminar.partida)
+        if partida.finalizada:
+            if len(jugadores_partida) == 1:
+                handle_partida_ganada (jugadores_partida[0].to_dict())
+                return
+            return
+        else:
+            if jugador_a_eliminar.host:
+                jugadores_partida[0].host = True
+            print(f"eliminado el jugador con id {jugador_id}")
+            handle_notificarJugadores(jugador_a_eliminar.partida)
     else:
         print(f"No se encontró el jugador con id {jugador_id}")
 
 @socketio.on('desloggear')
 def handle_desloggear_jugador(data):
     try:
-            jugador_a_eliminar = next((jugador for jugador in jugadores_loggeados if jugador.nombre == data), None)
+            jugador_a_eliminar = next((jugador for jugador in jugadores_loggeados if jugador.id_jugador == data), None)
             jugadores_loggeados.remove(jugador_a_eliminar)
     except:
         print("no estaba loggeado")
+
+@socketio.on('partidaGanada')
+def handle_partida_ganada(data):
+    jugador_json = data
+    try:
+        jugador_dict = json.loads(jugador_json)
+    except json.JSONDecodeError as e:
+        print(f"Error al decodificar JSON: {e}")
+        return
+    jugadoractual = jugador_dict
+    print("ganado")
+    
+
+    socketio.emit('ganador', jugadoractual , room=jugador_dict.get('partida'))
+    
 
 
 @socketio.on('actualizarJugador')
@@ -246,6 +270,31 @@ def jsonAJugadorEnPartidaOnline(jugador_dict):
     )
     return jugadoractual
    
+def moverDeslogeado(data):
+    jugador_json = data
+    try:
+        jugador_dict = json.loads(jugador_json)
+    except json.JSONDecodeError as e:
+        print(f"Error al decodificar JSON: {e}")
+        return
+    jugadoractual = jugador_dict
+
+    jugadorfallado = next((jugador for jugador in jugadores_conectados[jugador_dict.get('partida')] if jugador.id_jugador == jugador_dict.get("id_jugador")), None)
+
+    #coger la posicion del jugadorfallado
+    popsicion = jugadores_conectados[jugador_dict.get('partida')].index(jugadorfallado)
+    popsicion += 1
+    if (popsicion == len(jugadores_conectados[jugador_dict.get('partida')])):
+        jugadoractualnuevo = jugadores_conectados[jugador_dict.get('partida')][0]
+        jugadores_conectados[jugador_dict.get('partida')][0].jugadorActual = True
+        jugadoractual = jugadoractualnuevo.to_dict()
+    else:
+        jugadores_conectados[jugador_dict.get('partida')][popsicion].jugadorActual = True
+        jugadoractualnuevo = jugadores_conectados[jugador_dict.get('partida')][popsicion]
+        jugadoractual = jugadoractualnuevo.to_dict()
+
+
+    socketio.emit('moverJugadorOnline', jugadoractual , room=jugador_dict.get('partida'))
 
 @socketio.on('moverJugador')
 def handle_mover_jugador(data):
