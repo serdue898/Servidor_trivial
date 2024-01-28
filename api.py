@@ -134,44 +134,45 @@ def handle_delete_jugador(data):
         print(f"Error al decodificar JSON: {e}")
         return
 
-    jugador_id = jugador_dict.get('id_jugador')
+    if jugador_dict.get('partida') in jugadores_conectados:
+        jugador_id = jugador_dict.get('id_jugador')
 
-    jugador_a_eliminar = next((jugador for jugador in jugadores_conectados[jugador_dict.get('partida')] if jugador.id_jugador == jugador_id), None)
+        jugador_a_eliminar = next((jugador for jugador in jugadores_conectados[jugador_dict.get('partida')] if jugador.id_jugador == jugador_id), None)
 
-    if jugador_a_eliminar:
-        partida = db.session.query(Partida).filter_by(id_partida=jugador_a_eliminar.partida).first()
-        if partida.finalizada:
-            moverDeslogeado(data)
-        jugadores_conectados[jugador_a_eliminar.partida].remove(jugador_a_eliminar)
-        handle_desloggear_jugador(jugador_a_eliminar.id_jugador)
-        
-        
-        jugadores_partida = jugadores_conectados[jugador_a_eliminar.partida]
-        leave_room(jugador_a_eliminar.partida)
-        if not jugadores_partida:
-            db.session.delete(Partida.query.filter_by(id_partida=jugador_a_eliminar.partida).first())
-            db.session.commit()
-            return
-
-        if partida.finalizada:
-            if len(jugadores_partida) == 1:
-                handle_partida_ganada (jugadores_partida[0].to_dict())
+        if jugador_a_eliminar:
+            partida = db.session.query(Partida).filter_by(id_partida=jugador_a_eliminar.partida).first()
+            if partida.finalizada:
+                moverDeslogeado(data)
+            jugadores_conectados[jugador_a_eliminar.partida].remove(jugador_a_eliminar)
+            handle_desloggear_jugador(jugador_a_eliminar.id_jugador)
+            
+            
+            jugadores_partida = jugadores_conectados[jugador_a_eliminar.partida]
+            leave_room(jugador_a_eliminar.partida)
+            if not jugadores_partida:
+                db.session.delete(Partida.query.filter_by(id_partida=jugador_a_eliminar.partida).first())
+                db.session.commit()
                 return
-            return
+
+            if partida.finalizada:
+                if len(jugadores_partida) == 1:
+                    handle_partida_ganada (jugadores_partida[0].to_dict())
+                    return
+                return
+            else:
+                if jugador_a_eliminar.host:
+                    jugadores_partida[0].host = True
+                print(f"eliminado el jugador con id {jugador_id}")
+                handle_notificarJugadores(jugador_a_eliminar.partida)
         else:
-            if jugador_a_eliminar.host:
-                jugadores_partida[0].host = True
-            print(f"eliminado el jugador con id {jugador_id}")
-            handle_notificarJugadores(jugador_a_eliminar.partida)
-    else:
-        print(f"No se encontró el jugador con id {jugador_id}")
+            print(f"No se encontró el jugador con id {jugador_id}")
 
 @socketio.on('desloggear')
 def handle_desloggear_jugador(data):
-    
     try:
-            jugador_a_eliminar = next((jugador for jugador in jugadores_loggeados if jugador.id_jugador == data), None)
-            jugadores_loggeados.remove(jugador_a_eliminar)
+        jugador_a_eliminar = next((jugador for jugador in jugadores_loggeados if jugador.nombre == data), None)
+        jugadores_loggeados.remove(jugador_a_eliminar)
+        print("desloggeado")
     except:
         print("no estaba loggeado")
 
@@ -185,8 +186,7 @@ def handle_partida_ganada(data):
         return
     jugadoractual = jugador_dict
     print("ganado")
-    
-
+    jugadores_conectados.pop(jugador_dict.get('partida'))
     socketio.emit('ganador', jugadoractual , room=jugador_dict.get('partida'))
     
 
